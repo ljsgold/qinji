@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>轻记 · 个人消费</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #f5f1e8;
+      --paper-soft: #ebe4d3;
+      --ink: #1c1a16;
+      --ink-soft: #4a4640;
+      --ink-mute: #8a847a;
+      --line: #d8d0bd;
+      --line-soft: #e5dfce;
+      --accent: #b9462a;
+      --accent-soft: #f0d9cf;
+      --positive: #4a6b3a;
+      --warn: #b58300;
+      --shadow: 0 1px 0 rgba(28, 26, 22, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Outfit", "Noto Serif SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* paper grain */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(circle at 20% 30%, rgba(28,26,22,0.025) 0, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(28,26,22,0.02) 0, transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; }
+    input, select, textarea {
+      font: inherit; color: inherit;
+      background: transparent; border: none; outline: none;
+    }
+
+    /* layout: ledger book */
+    .book {
+      position: relative; z-index: 1;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      min-height: 100vh;
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 32px 40px 64px;
+      gap: 56px;
+    }
+
+    /* spine line */
+    .book::before {
+      content: "";
+      position: absolute;
+      left: 252px; top: 32px; bottom: 64px;
+      width: 1px;
+      background: var(--line);
+    }
+
+    /* sidebar */
+    .side { position: sticky; top: 32px; align-self: start; height: fit-content; }
+
+    .brand {
+      display: flex; align-items: baseline; gap: 10px;
+      margin-bottom: 4px;
+    }
+    .brand-mark {
+      font-family: "Noto Serif SC", serif;
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .brand-sub {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .brand-line {
+      width: 28px; height: 1px;
+      background: var(--ink);
+      margin: 18px 0 24px;
+    }
+
+    .nav {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 9px 0 9px 4px;
+      color: var(--ink-soft);
+      cursor: pointer;
+      position: relative;
+      transition: color .2s ease;
+    }
+    .nav-item::before {
+      content: "";
+      width: 0; height: 1px;
+      background: var(--ink);
+      transition: width .25s ease;
+    }
+    .nav-item:hover { color: var(--ink); }
+    .nav-item:hover::before { width: 14px; }
+    .nav-item.active { color: var(--ink); }
+    .nav-item.active::before { width: 22px; background: var(--accent); }
+    .nav-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: var(--ink-mute);
+      min-width: 20px;
+    }
+    .nav-item.active .nav-num { color: var(--accent); }
+
+    .side-foot {
+      margin-top: 40px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line-soft);
+      font-size: 11px;
+      color: var(--ink-mute);
+      letter-spacing: 0.05em;
+    }
+
+    /* main */
+    .main { min-width: 0; }
+
+    /* page header */
+    .page-head {
+      display: flex; justify-content: space-between; align-items: flex-end;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--ink);
+      margin-bottom: 36px;
+    }
+    .page-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 38px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+    }
+    .page-meta {
+      text-align: right;
+      font-size: 12px;
+      color: var(--ink-mute);
+      letter-spacing: 0.08em;
+    }
+    .page-meta strong {
+      display: block;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-top: 4px;
+      letter-spacing: 0;
+    }
+
+    /* sections */
+    .section { display: none; }
+    .section.active { display: block; }
+
+    /* overview hero numbers */
+    .ledger-hero {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 0;
+      margin-bottom: 56px;
+      padding-bottom: 40px;
+      border-bottom: 1px solid var(--line);
+    }
+    .hero-num-block {
+      padding-right: 32px;
+    }
+    .hero-num-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 14px;
+    }
+    .hero-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 88px;
+      font-weight: 400;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--ink);
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+    }
+    .hero-num .currency {
+      font-size: 28px;
+      color: var(--ink-soft);
+      font-weight: 300;
+    }
+    .hero-num .cents {
+      font-size: 32px;
+      color: var(--ink-mute);
+    }
+    .hero-num-foot {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .hero-num-foot .delta {
+      color: var(--accent);
+      font-family: "JetBrains Mono", monospace;
+    }
+
+    .hero-side {
+      padding-left: 32px;
+      border-left: 1px solid var(--line-soft);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .hero-side h3 {
+      font-family: "Noto Serif SC", serif;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+    .hero-side p {
+      color: var(--ink-soft);
+      font-size: 14px;
+    }
+    .mini-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px 32px;
+      margin-top: 24px;
+    }
+    .mini-stat-label {
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 6px;
+    }
+    .mini-stat-value {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 22px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    /* section header */
+    .sec-head {
+      display: flex; align-items: baseline; justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .sec-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 22px;
+      font-weight: 600;
+    }
+    .sec-num {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      color: var(--ink-mute);
+    }
+
+    /* recent list (ledger style) */
+    .ledger {
+      margin-bottom: 48px;
+    }
+    .ledger-row {
+      display: grid;
+      grid-template-columns: 90px 1fr 130px 110px;
+      gap: 16px;
+      align-items: baseline;
+      padding: 18px 0;
+      border-bottom: 1px dashed var(--line);
+      transition: padding-left .2s ease;
+    }
+    .ledger-row:hover { padding-left: 8px; }
+    .ledger-row.head {
+      padding: 0 0 12px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .ledger-row.head > * {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+    }
+    .ledger-date {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .ledger-name {
+      font-family: "Noto Serif SC", serif;
+      font-size: 15px;
+    }
+    .ledger-cat {
+      font-size: 12px;
+      color: var(--ink-mute);
+      letter-spacing: 0.05em;
+    }
+    .ledger-amount {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 15px;
+      text-align: right;
+      font-weight: 500;
+    }
+
+    /* category list */
+    .cat-list {
+      margin-bottom: 48px;
+    }
+    .cat-item {
+      display: grid;
+      grid-template-columns: 80px 1fr 120px 80px;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .cat-name {
+      font-family: "Noto Serif SC", serif;
+      font-size: 15px;
+    }
+    .cat-bar {
+      position: relative;
+      height: 6px;
+      background: var(--paper-soft);
+      overflow: hidden;
+    }
+    .cat-bar-fill {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: var(--ink);
+      width: 0;
+      transition: width .8s cubic-bezier(0.2, 0.7, 0.2, 1);
+    }
+    .cat-amt {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 14px;
+      text-align: right;
+    }
+    .cat-pct {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 12px;
+      text-align: right;
+      color: var(--ink-mute);
+    }
+
+    /* form (the writing area) */
+    .form-area {
+      max-width: 720px;
+      margin-bottom: 48px;
+    }
+    .form-title {
+      font-family: "Noto Serif SC", serif;
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .form-hint {
+      color: var(--ink-soft);
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 24px;
+      align-items: baseline;
+      padding: 22px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .field-label {
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      padding-top: 6px;
+    }
+    .field-input {
+      font-family: "Noto Serif SC", serif;
+      font-size: 22px;
+      color: var(--ink);
+      width: 100%;
+    }
+    .field-input::placeholder { color: var(--ink-mute); }
+    .field-input.amt {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 36px;
+      letter-spacing: -0.02em;
+    }
+    select.field-input {
+      appearance: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%),
+                        linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+      background-position: calc(100% - 14px) 50%, calc(100% - 9px) 50%;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+      padding-right: 24px;
+    }
+
+    .form-actions {
+      display: flex; gap: 16px;
+      margin-top: 32px;
+      align-items: center;
+    }
+    .btn-primary {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 14px 32px;
+      font-size: 13px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      border: 1px solid var(--ink);
+      transition: all .2s ease;
+    }
+    .btn-primary:hover {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--ink-soft);
+      padding: 14px 24px;
+      font-size: 13px;
+      letter-spacing: 0.1em;
+      border: none;
+    }
+    .btn-ghost:hover { color: var(--ink); }
+
+    .btn-danger {
+      background: transparent;
+      color: var(--accent);
+      padding: 8px 16px;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      border: 1px solid var(--accent);
+    }
+    .btn-danger:hover { background: var(--accent); color: var(--paper); }
+
+    /* filter bar */
+    .filter-bar {
+      display: flex; gap: 24px;
+      align-items: center;
+      padding: 16px 0;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .filter-bar label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-right: 8px;
+    }
+    .filter-bar select, .filter-bar input {
+      font-size: 14px;
+      color: var(--ink);
+      padding: 4px 0;
+      border-bottom: 1px solid transparent;
+    }
+    .filter-bar select:focus, .filter-bar input:focus {
+      border-bottom-color: var(--ink);
+    }
+
+    /* table (records) */
+    .records-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    .records-table th {
+      text-align: left;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      font-weight: 500;
+      padding: 12px 8px;
+      border-bottom: 1px solid var(--ink);
+    }
+    .records-table td {
+      padding: 16px 8px;
+      border-bottom: 1px solid var(--line-soft);
+      font-size: 14px;
+    }
+    .records-table .amt {
+      font-family: "JetBrains Mono", monospace;
+      text-align: right;
+    }
+    .records-table .date {
+      font-family: "JetBrains Mono", monospace;
+      color: var(--ink-soft);
+      font-size: 13px;
+    }
+
+    /* stats grid */
+    .stat-block {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0;
+      border-top: 1px solid var(--ink);
+      border-bottom: 1px solid var(--ink);
+      margin-bottom: 48px;
+    }
+    .stat-cell {
+      padding: 24px 24px 24px 0;
+      border-right: 1px solid var(--line-soft);
+    }
+    .stat-cell:last-child { border-right: none; }
+    .stat-cell-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--ink-mute);
+      margin-bottom: 10px;
+    }
+    .stat-cell-value {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    /* backup list */
+    .backup-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .backup-name {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      color: var(--ink-soft);
+    }
+    .backup-actions { display: flex; gap: 8px; }
+
+    /* empty */
+    .empty {
+      padding: 48px 0;
+      text-align: center;
+      color: var(--ink-mute);
+      font-style: italic;
+    }
+
+    /* toast */
+    .toast {
+      position: fixed;
+      bottom: 32px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      padding: 12px 24px;
+      background: var(--ink);
+      color: var(--paper);
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      box-shadow: 0 8px 24px rgba(28,26,22,0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all .3s cubic-bezier(0.2, 0.7, 0.2, 1);
+      z-index: 1000;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+    .toast.error { background: var(--accent); }
+    .toast.success { background: var(--positive); }
+
+    /* responsive */
+    @media (max-width: 880px) {
+      .book { grid-template-columns: 1fr; padding: 24px 20px; gap: 24px; }
+      .book::before { display: none; }
+      .side { position: static; }
+      .page-title { font-size: 28px; }
+      .hero-num { font-size: 56px; }
+      .ledger-hero { grid-template-columns: 1fr; }
+      .hero-side { border-left: none; padding-left: 0; border-top: 1px solid var(--line-soft); padding-top: 24px; margin-top: 24px; }
+      .ledger-row { grid-template-columns: 70px 1fr 90px; }
+      .ledger-row .ledger-cat { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="book">
+    <aside class="side">
+      <div class="brand">
+        <span class="brand-mark">轻记</span>
+      </div>
+      <div class="brand-sub">LIGHT LEDGER</div>
+      <div class="brand-line"></div>
+      <nav class="nav" id="nav">
+        <div class="nav-item active" data-section="dashboard">
+          <span class="nav-num">01</span>总览
+        </div>
+        <div class="nav-item" data-section="add">
+          <span class="nav-num">02</span>记一笔
+        </div>
+        <div class="nav-item" data-section="records">
+          <span class="nav-num">03</span>账本
+        </div>
+        <div class="nav-item" data-section="stats">
+          <span class="nav-num">04</span>分析
+        </div>
+        <div class="nav-item" data-section="backup">
+          <span class="nav-num">05</span>归档
+        </div>
+      </nav>
+      <div class="side-foot">
+        本地 JSON 持久化<br>
+        <span id="pyVersion">Python</span>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ── 总览 ── -->
+      <section class="section active" id="sec-dashboard">
+        <div class="page-head">
+          <h1 class="page-title">这个月，<br>钱花在了哪里。</h1>
+          <div class="page-meta">
+            <div>截至今日</div>
+            <strong id="todayDate">—</strong>
+          </div>
+        </div>
+
+        <div class="ledger-hero">
+          <div class="hero-num-block">
+            <div class="hero-num-label">本月支出</div>
+            <div class="hero-num">
+              <span class="currency">¥</span>
+              <span id="kpi-month-main">0</span>
+              <span class="cents" id="kpi-month-cents">.00</span>
+            </div>
+            <div class="hero-num-foot">
+              本周 <span class="delta" id="kpi-week-inline">¥0.00</span> · 今日 <span class="delta" id="kpi-today-inline">¥0.00</span>
+            </div>
+          </div>
+          <div class="hero-side">
+            <div>
+              <h3>账本摘要</h3>
+              <p id="summary-line">正在整理你的记录…</p>
+            </div>
+            <div class="mini-stats">
+              <div>
+                <div class="mini-stat-label">记录</div>
+                <div class="mini-stat-value" id="kpi-count">0</div>
+              </div>
+              <div>
+                <div class="mini-stat-label">分类</div>
+                <div class="mini-stat-value" id="kpi-cat-count">0</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-head">
+          <h2 class="sec-title">最近账目</h2>
+          <span class="sec-num">RECENT · 5</span>
+        </div>
+        <div class="ledger" id="recent-list"></div>
+
+        <div class="sec-head">
+          <h2 class="sec-title">分类去向</h2>
+          <span class="sec-num">BY CATEGORY</span>
+        </div>
+        <div class="cat-list" id="category-stats"></div>
+      </section>
+
+      <!-- ── 记一笔 ── -->
+      <section class="section" id="sec-add">
+        <div class="page-head">
+          <h1 class="page-title">新的一笔。</h1>
+          <div class="page-meta">
+            <div>记录格式</div>
+            <strong>自由书写</strong>
+          </div>
+        </div>
+
+        <form class="form-area" id="addForm">
+          <h2 class="form-title">写下来</h2>
+          <p class="form-hint">不必刻意分类。想起什么就记什么。</p>
+
+          <div class="field">
+            <label class="field-label">分类</label>
+            <select class="field-input" id="f-category" required></select>
+          </div>
+          <div class="field">
+            <label class="field-label">金额</label>
+            <input type="number" class="field-input amt" id="f-amount" step="0.01" min="0.01" placeholder="0.00" required>
+          </div>
+          <div class="field">
+            <label class="field-label">日期</label>
+            <input type="date" class="field-input" id="f-date" required>
+          </div>
+          <div class="field">
+            <label class="field-label">方式</label>
+            <input type="text" class="field-input" id="f-payment" placeholder="微信 / 支付宝 / 现金…">
+          </div>
+          <div class="field">
+            <label class="field-label">备注</label>
+            <input type="text" class="field-input" id="f-note" placeholder="和谁、为什么…">
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn-primary">记录</button>
+            <button type="button" class="btn-ghost" onclick="document.getElementById('addForm').reset();document.getElementById('f-date').value=new Date().toISOString().slice(0,10)">清空</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- ── 账本 ── -->
+      <section class="section" id="sec-records">
+        <div class="page-head">
+          <h1 class="page-title">所有账目。</h1>
+          <div class="page-meta">
+            <div>合计</div>
+            <strong id="records-total">¥0.00</strong>
+          </div>
+        </div>
+
+        <div class="filter-bar">
+          <div><label>分类</label>
+            <select id="filter-category"><option value="">全部</option></select>
+          </div>
+          <div><label>搜索</label>
+            <input type="text" id="filter-keyword" placeholder="备注关键词">
+          </div>
+          <div style="margin-left:auto">
+            <button class="btn-ghost" onclick="loadRecords()">查询</button>
+            <button class="btn-primary" onclick="exportCSV()">导出</button>
+          </div>
+        </div>
+
+        <div id="records-table"></div>
+      </section>
+
+      <!-- ── 分析 ── -->
+      <section class="section" id="sec-stats">
+        <div class="page-head">
+          <h1 class="page-title">多看一眼。</h1>
+          <div class="page-meta">
+            <div>基于全部记录</div>
+            <strong id="stats-range">—</strong>
+          </div>
+        </div>
+
+        <div class="stat-block" id="stats-content"></div>
+
+        <div class="sec-head">
+          <h2 class="sec-title">分类构成</h2>
+          <span class="sec-num">DISTRIBUTION</span>
+        </div>
+        <div class="cat-list" id="stats-cat"></div>
+      </section>
+
+      <!-- ── 归档 ── -->
+      <section class="section" id="sec-backup">
+        <div class="page-head">
+          <h1 class="page-title">备份与归档。</h1>
+          <div class="page-meta">
+            <div>数据</div>
+            <strong>本地 JSON</strong>
+          </div>
+        </div>
+
+        <div class="form-actions" style="margin-bottom: 32px">
+          <button class="btn-primary" onclick="createBackup()">新建备份</button>
+          <button class="btn-ghost" onclick="loadBackups()">刷新</button>
+          <button class="btn-danger" onclick="clearAll()">清空全部</button>
+        </div>
+
+        <div id="backups-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '';
+    let categories = [];
+    const catColor = {
+      '餐饮': '#b9462a', '交通': '#3a5a40', '购物': '#7d4f9c',
+      '娱乐': '#c98a2b', '医疗': '#a64545', '通讯': '#3d6680',
+      '居住': '#6b6354', '学习': '#5a6b8a', '其他': '#888888',
+    };
+
+    function fmt(n) {
+      const v = Number(n) || 0;
+      return v.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function splitAmt(n) {
+      const v = Number(n) || 0;
+      const s = v.toFixed(2);
+      const [a, b] = s.split('.');
+      return [a, '.' + b];
+    }
+
+    function toast(msg, type = '') {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show ' + type;
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.className = 'toast ' + type, 2400);
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(API + path, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: '请求失败' }));
+        throw new Error(err.detail || '请求失败');
+      }
+      return res.json();
+    }
+
+    async function loadCategories() {
+      const data = await api('/api/categories');
+      categories = data.categories;
+      const sel = document.getElementById('f-category');
+      const filter = document.getElementById('filter-category');
+      sel.innerHTML = '';
+      filter.innerHTML = '<option value="">全部</option>';
+      categories.forEach(c => {
+        sel.insertAdjacentHTML('beforeend', `<option value="${c.value}">${c.value}</option>`);
+        filter.insertAdjacentHTML('beforeend', `<option value="${c.value}">${c.value}</option>`);
+      });
+    }
+
+    async function loadPyVersion() {
+      try {
+        const d = await api('/api/py-version');
+        document.getElementById('pyVersion').textContent = 'Python ' + d.version;
+      } catch {}
+    }
+
+    function switchSection(name) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      const sec = document.getElementById('sec-' + name);
+      sec.classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const navItem = document.querySelector(`.nav-item[data-section="${name}"]`);
+      if (navItem) navItem.classList.add('active');
+      // animate page
+      sec.style.opacity = '0';
+      sec.style.transform = 'translateY(8px)';
+      requestAnimationFrame(() => {
+        sec.style.transition = 'opacity .35s ease, transform .35s ease';
+        sec.style.opacity = '1';
+        sec.style.transform = 'translateY(0)';
+      });
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'records') loadRecords();
+      if (name === 'stats') loadStats();
+      if (name === 'backup') loadBackups();
+    }
+
+    document.getElementById('nav').addEventListener('click', e => {
+      const item = e.target.closest('.nav-item');
+      if (item) switchSection(item.dataset.section);
+    });
+
+    async function loadDashboard() {
+      const data = await api('/api/summary');
+      const [m, mc] = splitAmt(data.month_total);
+      document.getElementById('kpi-month-main').textContent = m;
+      document.getElementById('kpi-month-cents').textContent = mc;
+      document.getElementById('kpi-week-inline').textContent = '¥' + fmt(data.week_total);
+      document.getElementById('kpi-today-inline').textContent = '¥' + fmt(data.today_total);
+      document.getElementById('kpi-count').textContent = data.total_count;
+      const usedCats = Object.keys(data.category_totals).length;
+      document.getElementById('kpi-cat-count').textContent = usedCats;
+
+      const day = new Date();
+      document.getElementById('todayDate').textContent =
+        `${day.getFullYear()}.${String(day.getMonth()+1).padStart(2,'0')}.${String(day.getDate()).padStart(2,'0')}`;
+
+      if (data.total_count === 0) {
+        document.getElementById('summary-line').textContent = '还没有记录。从「记一笔」开始。';
+      } else {
+        const avg = data.avg_daily || 0;
+        document.getElementById('summary-line').textContent =
+          `日均支出 ¥${fmt(avg)}，共 ${data.total_count} 条记录分布于 ${usedCats} 个分类。`;
+      }
+
+      const recent = document.getElementById('recent-list');
+      if (!data.recent_records.length) {
+        recent.innerHTML = '<div class="empty">账本空白</div>';
+      } else {
+        recent.innerHTML = `
+          <div class="ledger-row head">
+            <div>日期</div><div>摘要</div><div>分类</div><div style="text-align:right">金额</div>
+          </div>
+          ${data.recent_records.map(r => `
+            <div class="ledger-row">
+              <div class="ledger-date">${r.date.slice(5)}</div>
+              <div class="ledger-name">${r.note || r.payment || '—'}</div>
+              <div class="ledger-cat">${r.category}</div>
+              <div class="ledger-amount">¥${fmt(r.amount)}</div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      const catStats = document.getElementById('category-stats');
+      const totals = data.category_totals;
+      const sum = Object.values(totals).reduce((a, b) => a + b, 0);
+      if (!sum) {
+        catStats.innerHTML = '<div class="empty">无数据</div>';
+      } else {
+        const max = Math.max(...Object.values(totals));
+        catStats.innerHTML = Object.entries(totals)
+          .sort((a, b) => b[1] - a[1])
+          .map(([cat, amt]) => {
+            const pct = (amt / sum * 100).toFixed(1);
+            const widthPct = (amt / max * 100).toFixed(1);
+            const color = catColor[cat] || '#1c1a16';
+            return `
+              <div class="cat-item">
+                <div class="cat-name">${cat}</div>
+                <div class="cat-bar"><div class="cat-bar-fill" style="background:${color}" data-w="${widthPct}"></div></div>
+                <div class="cat-amt">¥${fmt(amt)}</div>
+                <div class="cat-pct">${pct}%</div>
+              </div>
+            `;
+          }).join('');
+        requestAnimationFrame(() => {
+          document.querySelectorAll('.cat-bar-fill').forEach(el => {
+            el.style.width = el.dataset.w + '%';
+          });
+        });
+      }
+    }
+
+    document.getElementById('addForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const body = {
+        category: document.getElementById('f-category').value,
+        amount: parseFloat(document.getElementById('f-amount').value),
+        date: document.getElementById('f-date').value,
+        payment: document.getElementById('f-payment').value,
+        note: document.getElementById('f-note').value,
+      };
+      try {
+        await api('/api/records', { method: 'POST', body: JSON.stringify(body) });
+        toast('已记下', 'success');
+        e.target.reset();
+        document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
+      } catch (err) {
+        toast(err.message, 'error');
+      }
+    });
+
+    document.getElementById('f-date').value = new Date().toISOString().slice(0, 10);
+
+    async function loadRecords() {
+      const params = new URLSearchParams();
+      const cat = document.getElementById('filter-category').value;
+      const kw = document.getElementById('filter-keyword').value;
+      if (cat) params.set('category', cat);
+      if (kw) params.set('keyword', kw);
+      const data = await api('/api/records?' + params);
+      const records = data.records || [];
+      const container = document.getElementById('records-table');
+      const total = records.reduce((s, r) => s + r.amount, 0);
+      document.getElementById('records-total').textContent = '¥' + fmt(total);
+      if (!records.length) {
+        container.innerHTML = '<div class="empty">未找到记录</div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="records-table">
+          <thead><tr>
+            <th>日期</th><th>分类</th><th>摘要</th><th>方式</th><th class="amt">金额</th><th></th>
+          </tr></thead>
+          <tbody>
+            ${records.map(r => `
+              <tr>
+                <td class="date">${r.date}</td>
+                <td>${r.category}</td>
+                <td>${r.note || '—'}</td>
+                <td>${r.payment || '—'}</td>
+                <td class="amt">¥${fmt(r.amount)}</td>
+                <td style="text-align:right"><button class="btn-danger" onclick="deleteRecord('${r.id}')">删</button></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
+    async function deleteRecord(id) {
+      if (!confirm('确认删除？')) return;
+      try {
+        await api('/api/records/' + id, { method: 'DELETE' });
+        toast('已删除', 'success');
+        loadRecords();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function loadStats() {
+      const data = await api('/api/statistics');
+      const cells = [
+        ['总支出', '¥' + fmt(data.total)],
+        ['记录数', data.count],
+        ['平均', '¥' + fmt(data.average)],
+        ['最大', '¥' + fmt(data.max_amount)],
+        ['最小', '¥' + fmt(data.min_amount)],
+      ];
+      document.getElementById('stats-content').innerHTML = cells.map(([l, v]) => `
+        <div class="stat-cell">
+          <div class="stat-cell-label">${l}</div>
+          <div class="stat-cell-value">${v}</div>
+        </div>
+      `).join('');
+
+      const allRecs = await api('/api/records');
+      const totals = {};
+      allRecs.records.forEach(r => { totals[r.category] = (totals[r.category] || 0) + r.amount; });
+      const sum = Object.values(totals).reduce((a, b) => a + b, 0);
+      const max = Math.max(...Object.values(totals), 1);
+      const c = document.getElementById('stats-cat');
+      if (!sum) { c.innerHTML = '<div class="empty">无数据</div>'; return; }
+      c.innerHTML = Object.entries(totals)
+        .sort((a, b) => b[1] - a[1])
+        .map(([cat, amt]) => {
+          const pct = (amt / sum * 100).toFixed(1);
+          const wp = (amt / max * 100).toFixed(1);
+          const color = catColor[cat] || '#1c1a16';
+          return `
+            <div class="cat-item">
+              <div class="cat-name">${cat}</div>
+              <div class="cat-bar"><div class="cat-bar-fill" style="background:${color}" data-w="${wp}"></div></div>
+              <div class="cat-amt">¥${fmt(amt)}</div>
+              <div class="cat-pct">${pct}%</div>
+            </div>
+          `;
+        }).join('');
+      requestAnimationFrame(() => {
+        document.querySelectorAll('#stats-cat .cat-bar-fill').forEach(el => {
+          el.style.width = el.dataset.w + '%';
+        });
+      });
+
+      document.getElementById('stats-range').textContent =
+        data.count > 0 ? `共 ${data.count} 条` : '—';
+    }
+
+    async function createBackup() {
+      try {
+        await api('/api/backup', { method: 'POST' });
+        toast('备份已创建', 'success');
+        loadBackups();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function loadBackups() {
+      try {
+        const data = await api('/api/backup/list');
+        const list = document.getElementById('backups-list');
+        if (!data.backups.length) {
+          list.innerHTML = '<div class="empty">暂无备份</div>';
+          return;
+        }
+        list.innerHTML = data.backups.map(b => `
+          <div class="backup-row">
+            <div class="backup-name">${b.name}</div>
+            <div class="backup-actions">
+              <button class="btn-ghost" onclick="restoreBackup('${b.path}')">恢复</button>
+              <button class="btn-danger" onclick="deleteBackup('${b.path}')">删除</button>
+            </div>
+          </div>
+        `).join('');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function restoreBackup(path) {
+      if (!confirm('恢复将覆盖当前数据，确认？')) return;
+      try {
+        await api('/api/backup/restore?path=' + encodeURIComponent(path), { method: 'POST' });
+        toast('已恢复', 'success');
+        loadDashboard();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function deleteBackup(path) {
+      if (!confirm('删除该备份？')) return;
+      try {
+        await api('/api/backup/delete?path=' + encodeURIComponent(path), { method: 'DELETE' });
+        toast('已删除', 'success');
+        loadBackups();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function clearAll() {
+      if (!confirm('清空所有数据？不可恢复。')) return;
+      try {
+        await api('/api/records/clear', { method: 'POST' });
+        toast('已清空', 'success');
+        loadDashboard();
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    async function exportCSV() {
+      try {
+        const data = await api('/api/export');
+        toast('已导出：' + data.file, 'success');
+      } catch (err) { toast(err.message, 'error'); }
+    }
+
+    (async function init() {
+      try {
+        await loadCategories();
+        await loadPyVersion();
+        await loadDashboard();
+      } catch (err) {
+        toast('初始化失败：' + err.message, 'error');
+      }
+    })();
+  </script>
+</body>
+</html>

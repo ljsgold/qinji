@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pyo
+data/records.json
+data/backups/
+exports/
+output/
+tmp_docs_work/
+*.tmp
+*.log
+.DS_Store

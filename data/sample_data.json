@@ -1,0 +1,117 @@
+{
+  "records": [
+    {
+      "id": "sample_001",
+      "category": "餐饮",
+      "amount": 45.5,
+      "date": "2026-05-01",
+      "description": "食堂午餐",
+      "note": "早餐：8元",
+      "created_at": "2026-05-01 12:30:00"
+    },
+    {
+      "id": "sample_002",
+      "category": "餐饮",
+      "amount": 120.0,
+      "date": "2026-05-01",
+      "description": "餐厅晚餐",
+      "note": "和朋友聚餐",
+      "created_at": "2026-05-01 19:00:00"
+    },
+    {
+      "id": "sample_003",
+      "category": "交通",
+      "amount": 15.0,
+      "date": "2026-05-02",
+      "description": "地铁出行",
+      "note": "上班通勤",
+      "created_at": "2026-05-02 08:00:00"
+    },
+    {
+      "id": "sample_004",
+      "category": "购物",
+      "amount": 299.0,
+      "date": "2026-05-03",
+      "description": "购买书籍",
+      "note": "Python编程书籍",
+      "created_at": "2026-05-03 15:30:00"
+    },
+    {
+      "id": "sample_005",
+      "category": "娱乐",
+      "amount": 80.0,
+      "date": "2026-05-04",
+      "description": "看电影",
+      "note": "周末放松",
+      "created_at": "2026-05-04 20:00:00"
+    },
+    {
+      "id": "sample_006",
+      "category": "餐饮",
+      "amount": 35.0,
+      "date": "2026-05-05",
+      "description": "外卖",
+      "note": "加班晚餐",
+      "created_at": "2026-05-05 21:00:00"
+    },
+    {
+      "id": "sample_007",
+      "category": "购物",
+      "amount": 159.0,
+      "date": "2026-05-06",
+      "description": "日用品",
+      "note": "超市购物",
+      "created_at": "2026-05-06 10:00:00"
+    },
+    {
+      "id": "sample_008",
+      "category": "交通",
+      "amount": 25.0,
+      "date": "2026-05-07",
+      "description": "打车",
+      "note": "紧急外出",
+      "created_at": "2026-05-07 14:00:00"
+    },
+    {
+      "id": "sample_009",
+      "category": "餐饮",
+      "amount": 68.0,
+      "date": "2026-05-08",
+      "description": "奶茶零食",
+      "note": "下午茶",
+      "created_at": "2026-05-08 15:00:00"
+    },
+    {
+      "id": "sample_010",
+      "category": "医疗",
+      "amount": 150.0,
+      "date": "2026-05-10",
+      "description": "买药",
+      "note": "感冒药",
+      "created_at": "2026-05-10 09:00:00"
+    }
+  ],
+  "budget": {
+    "monthly_total": 3000.0,
+    "category_limits": {
+      "餐饮": 800.0,
+      "交通": 300.0,
+      "购物": 500.0,
+      "娱乐": 400.0,
+      "医疗": 200.0,
+      "通讯": 100.0,
+      "教育": 300.0,
+      "居住": 0.0,
+      "其他": 400.0
+    },
+    "start_date": "2026-05-01",
+    "end_date": null
+  },
+  "settings": {
+    "currency": "¥",
+    "date_format": "%Y-%m-%d",
+    "theme": "light",
+    "language": "zh-CN"
+  },
+  "last_updated": "2026-05-28 10:00:00"
+}
