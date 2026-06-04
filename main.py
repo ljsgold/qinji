@@ -1,11 +1,15 @@
 """
 杭州电子科技大学《Python程序设计》期末大作业
-个人消费管理系统 - Starlette 后端（基于已有依赖）
+个人消费管理系统 - Starlette 后端（增强版）
 
 学号：249050123
 姓名：刘俊昇
 
-后端服务，依赖 starlette + uvicorn（环境已有），无需额外安装。
+增强功能：
+- 异常消费检测（Z-score算法）
+- 周规律分析
+- 趋势预测（移动平均）
+- 预算预警系统
 """
 
 from starlette.applications import Starlette
@@ -22,6 +26,7 @@ import json
 import os
 from pathlib import Path
 from typing import Optional, List
+import math
 
 # 复用业务逻辑
 from data_storage import DataStorage
@@ -32,6 +37,9 @@ from utils import (
     get_date_range_options,
     export_to_csv,
     import_from_csv,
+    detect_anomalies,
+    calculate_weekday_analysis,
+    calculate_trend_forecast,
 )
 
 
@@ -124,19 +132,27 @@ async def create_record(request: Request):
     except Exception:
         return error_response("无效的 JSON 请求体", 400)
 
-    required = ["category", "amount", "date", "description"]
+    # 支持多种字段名称（兼容前端）
+    category = payload.get("category") or payload.get("分类")
+    amount = payload.get("amount") or payload.get("金额")
+    date = payload.get("date") or payload.get("日期")
+    description = payload.get("description") or payload.get("描述") or payload.get("note", "消费")
+    note = payload.get("note") or payload.get("备注")
+    payment = payload.get("payment") or payload.get("支付方式", "现金")
+
+    required = ["category", "amount", "date"]
     for field in required:
-        if field not in payload:
+        if not (payload.get(field) or payload.get({"category": "分类", "amount": "金额", "date": "日期"}.get(field))):
             return error_response(f"缺少必填字段: {field}", 400)
 
     try:
         record = Record(
-            category=Record._parse_category(payload["category"]),
-            amount=float(payload["amount"]),
-            date=payload["date"],
-            description=payload["description"],
-            note=payload.get("note"),
-            payment=payload.get("payment", "现金"),
+            category=Record._parse_category(category),
+            amount=float(amount),
+            date=date,
+            description=description,
+            note=note,
+            payment=payment,
         )
     except (KeyError, ValueError, Exception) as e:
         return error_response(f"参数错误: {e}", 400)
@@ -216,10 +232,18 @@ async def get_statistics(request: Request):
     today_total = sum(r.amount for r in all_recs if r.date == today_str)
 
     return json_response({
-        **stats,
+        "total": stats.get("total", stats.get("avg", 0) * stats.get("count", 0)),
+        "count": stats.get("count", len(records)),
+        "average": stats.get("avg", 0),
+        "avg": stats.get("avg", 0),
+        "max_amount": stats.get("max", 0),
+        "max": stats.get("max", 0),
+        "min_amount": stats.get("min", 0),
+        "min": stats.get("min", 0),
         "month_total": month_total,
         "week_total": week_total,
         "today_total": today_total,
+        "daily_avg": stats.get("daily_avg", 0),
     })
 
 
@@ -363,6 +387,217 @@ async def get_record_count(request: Request):
     return json_response({"count": len(records)})
 
 
+# ── 异常消费检测 ─────────────────────────────────────────
+
+async def get_anomalies(request: Request):
+    """
+    异常消费检测API
+    使用Z-score算法检测异常消费记录
+    """
+    storage = get_storage()
+    records = storage.get_all_records()
+
+    if len(records) < 3:
+        return json_response({"anomalies": [], "message": "数据量不足，无法进行异常检测"})
+
+    amounts = [r.amount for r in records]
+    mean = sum(amounts) / len(amounts)
+    variance = sum((x - mean) ** 2 for x in amounts) / len(amounts)
+    std = math.sqrt(variance) if variance > 0 else 0
+
+    anomalies = []
+    threshold = 2.0  # Z-score阈值
+
+    for r in records:
+        z_score = (r.amount - mean) / std if std > 0 else 0
+        if abs(z_score) > threshold:
+            anomalies.append({
+                "id": r.id,
+                "date": r.date,
+                "category": r.category.value,
+                "description": r.description,
+                "amount": r.amount,
+                "z_score": round(z_score, 2),
+                "deviation": round(r.amount - mean, 2),
+                "mean": round(mean, 2),
+                "std": round(std, 2)
+            })
+
+    # 按z_score绝对值降序排列
+    anomalies.sort(key=lambda x: abs(x["z_score"]), reverse=True)
+
+    return json_response({
+        "anomalies": anomalies,
+        "total": len(anomalies),
+        "threshold": threshold,
+        "mean": round(mean, 2),
+        "std": round(std, 2),
+        "message": f"检测到 {len(anomalies)} 条异常消费记录" if anomalies else "未检测到明显异常"
+    })
+
+
+# ── 周规律分析 ───────────────────────────────────────────
+
+async def get_weekday_analysis(request: Request):
+    """
+    周规律分析API
+    分析每周各天的消费规律
+    """
+    storage = get_storage()
+    records = storage.get_all_records()
+
+    if not records:
+        return json_response({
+            "weekday_stats": {},
+            "highest_day": None,
+            "lowest_day": None,
+            "anomalies": []
+        })
+
+    weekday_names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+    weekday_totals = {i: 0.0 for i in range(7)}
+    weekday_counts = {i: 0 for i in range(7)}
+    weekday_records = {i: [] for i in range(7)}
+
+    for r in records:
+        try:
+            d = datetime.strptime(r.date, "%Y-%m-%d")
+            wd = d.weekday()  # 0=Monday, 6=Sunday
+            weekday_totals[wd] += r.amount
+            weekday_counts[wd] += 1
+            weekday_records[wd].append(r.to_dict())
+        except:
+            continue
+
+    weekday_stats = {}
+    for i in range(7):
+        avg = weekday_totals[i] / weekday_counts[i] if weekday_counts[i] > 0 else 0
+        weekday_stats[weekday_names[i]] = {
+            "total": round(weekday_totals[i], 2),
+            "count": weekday_counts[i],
+            "average": round(avg, 2)
+        }
+
+    # 找出消费最高和最低的日期
+    avgs = {weekday_names[i]: weekday_totals[i] / weekday_counts[i] if weekday_counts[i] > 0 else 0 for i in range(7)}
+    non_zero_avgs = {k: v for k, v in avgs.items() if v > 0}
+
+    highest_day = max(non_zero_avgs, key=non_zero_avgs.get) if non_zero_avgs else None
+    lowest_day = min(non_zero_avgs, key=non_zero_avgs.get) if non_zero_avgs else None
+
+    # 检测日异常（当天消费远超平均）
+    anomalies = []
+    overall_avg = sum(weekday_totals.values()) / max(sum(weekday_counts.values()), 1)
+    for wd, records_list in weekday_records.items():
+        for r in records_list:
+            if r.amount > overall_avg * 2.5:
+                anomalies.append({
+                    "date": r.date,
+                    "amount": r.amount,
+                    "category": r.category.value,
+                    "description": r.description,
+                    "deviation": round(r.amount - overall_avg, 2)
+                })
+
+    return json_response({
+        "weekday_stats": weekday_stats,
+        "highest_day": {
+            "name": highest_day,
+            "average": round(avgs.get(highest_day, 0), 2) if highest_day else None
+        },
+        "lowest_day": {
+            "name": lowest_day,
+            "average": round(avgs.get(lowest_day, 0), 2) if lowest_day else None
+        },
+        "anomalies": anomalies[:5],  # 最多返回5条
+        "total_records": len(records)
+    })
+
+
+# ── 趋势预测 ─────────────────────────────────────────────
+
+async def get_trend_forecast(request: Request):
+    """
+    趋势预测API
+    使用简单移动平均预测未来消费趋势
+    """
+    storage = get_storage()
+    records = storage.get_all_records()
+
+    if len(records) < 7:
+        return json_response({
+            "message": "数据量不足，无法进行趋势预测",
+            "forecast": None
+        })
+
+    # 按日期聚合每日消费
+    daily_totals = {}
+    for r in records:
+        daily_totals[r.date] = daily_totals.get(r.date, 0) + r.amount
+
+    # 排序
+    sorted_dates = sorted(daily_totals.keys())
+
+    # 计算7天移动平均
+    window = min(7, len(sorted_dates))
+    moving_averages = []
+    for i in range(len(sorted_dates) - window + 1):
+        window_data = [daily_totals[sorted_dates[i + j]] for j in range(window)]
+        avg = sum(window_data) / window
+        moving_averages.append({
+            "date": sorted_dates[i + window - 1],
+            "average": round(avg, 2)
+        })
+
+    # 简单线性回归预测未来3天
+    if len(moving_averages) >= 3:
+        n = len(moving_averages)
+        x_vals = list(range(n))
+        y_vals = [ma["average"] for ma in moving_averages]
+
+        x_mean = sum(x_vals) / n
+        y_mean = sum(y_vals) / n
+
+        numerator = sum((x_vals[i] - x_mean) * (y_vals[i] - y_mean) for i in range(n))
+        denominator = sum((x_vals[i] - x_mean) ** 2 for i in range(n))
+
+        if denominator != 0:
+            slope = numerator / denominator
+            intercept = y_mean - slope * x_mean
+
+            # 预测未来3天
+            forecast = []
+            last_date = datetime.strptime(sorted_dates[-1], "%Y-%m-%d")
+            for i in range(1, 4):
+                future_date = last_date + timedelta(days=i)
+                predicted = slope * (n + i - 1) + intercept
+                forecast.append({
+                    "date": future_date.strftime("%Y-%m-%d"),
+                    "predicted_amount": round(max(0, predicted), 2),
+                    "confidence": "low" if n < 14 else "medium" if n < 30 else "high"
+                })
+
+            trend = "上升" if slope > 5 else "下降" if slope < -5 else "平稳"
+            trend_slope = round(slope, 4)
+        else:
+            forecast = []
+            trend = "平稳"
+            trend_slope = 0
+    else:
+        forecast = []
+        trend = "数据不足"
+        trend_slope = 0
+
+    return json_response({
+        "moving_averages": moving_averages,
+        "forecast": forecast,
+        "trend": trend,
+        "trend_slope": trend_slope,
+        "data_points": len(sorted_dates),
+        "message": f"消费趋势{trend}，日均变化约 {abs(trend_slope):.2f} 元" if trend != "数据不足" else "数据量不足"
+    })
+
+
 # ── 首页摘要 ─────────────────────────────────────────────
 
 async def get_summary(request: Request):
@@ -410,40 +645,33 @@ _storage: DataStorage = None
 def get_storage() -> DataStorage:
     global _storage
     if _storage is None:
-        raise RuntimeError("Storage not initialized")
+        _storage = DataStorage()
+        _storage.load_data()
+        sample_records = [
+            Record(Record._parse_category("餐饮"), 45.5, "2026-05-01", "食堂午餐", "早餐：8元"),
+            Record(Record._parse_category("餐饮"), 120.0, "2026-05-01", "餐厅晚餐", "和朋友聚餐"),
+            Record(Record._parse_category("交通"), 15.0, "2026-05-02", "地铁出行", "上班通勤"),
+            Record(Record._parse_category("购物"), 299.0, "2026-05-03", "购买书籍", "Python编程书籍"),
+            Record(Record._parse_category("娱乐"), 80.0, "2026-05-04", "看电影", "周末放松"),
+            Record(Record._parse_category("餐饮"), 35.0, "2026-05-05", "外卖", "加班晚餐"),
+            Record(Record._parse_category("购物"), 159.0, "2026-05-06", "日用品", "超市购物"),
+            Record(Record._parse_category("交通"), 25.0, "2026-05-07", "打车", "紧急外出"),
+            Record(Record._parse_category("餐饮"), 68.0, "2026-05-08", "奶茶零食", "下午茶"),
+            Record(Record._parse_category("医疗"), 150.0, "2026-05-10", "买药", "感冒药"),
+            Record(Record._parse_category("餐饮"), 88.0, "2026-05-12", "生日聚餐", "室友生日"),
+            Record(Record._parse_category("购物"), 399.0, "2026-05-15", "衣服", "夏装"),
+            Record(Record._parse_category("娱乐"), 200.0, "2026-05-18", "演唱会", "音乐节"),
+            Record(Record._parse_category("餐饮"), 42.0, "2026-05-20", "食堂午餐", "工作日"),
+            Record(Record._parse_category("交通"), 50.0, "2026-05-22", "火车票", "回家"),
+            Record(Record._parse_category("购物"), 89.0, "2026-05-25", "护肤品", "日常护理"),
+            Record(Record._parse_category("餐饮"), 56.0, "2026-05-27", "外卖", "周末宅家"),
+            Record(Record._parse_category("通讯"), 50.0, "2026-05-28", "手机话费", "月租"),
+        ]
+        if not _storage.get_all_records():
+            for r in sample_records:
+                _storage.add_record(r)
+        print("[OK] Data loaded, sample records ready.")
     return _storage
-
-
-def init_storage():
-    global _storage
-    _storage = DataStorage()
-    _storage.load_data()
-
-    sample_records = [
-        Record(Record._parse_category("餐饮"), 45.5, "2026-05-01", "食堂午餐", "早餐：8元"),
-        Record(Record._parse_category("餐饮"), 120.0, "2026-05-01", "餐厅晚餐", "和朋友聚餐"),
-        Record(Record._parse_category("交通"), 15.0, "2026-05-02", "地铁出行", "上班通勤"),
-        Record(Record._parse_category("购物"), 299.0, "2026-05-03", "购买书籍", "Python编程书籍"),
-        Record(Record._parse_category("娱乐"), 80.0, "2026-05-04", "看电影", "周末放松"),
-        Record(Record._parse_category("餐饮"), 35.0, "2026-05-05", "外卖", "加班晚餐"),
-        Record(Record._parse_category("购物"), 159.0, "2026-05-06", "日用品", "超市购物"),
-        Record(Record._parse_category("交通"), 25.0, "2026-05-07", "打车", "紧急外出"),
-        Record(Record._parse_category("餐饮"), 68.0, "2026-05-08", "奶茶零食", "下午茶"),
-        Record(Record._parse_category("医疗"), 150.0, "2026-05-10", "买药", "感冒药"),
-        Record(Record._parse_category("餐饮"), 88.0, "2026-05-12", "生日聚餐", "室友生日"),
-        Record(Record._parse_category("购物"), 399.0, "2026-05-15", "衣服", "夏装"),
-        Record(Record._parse_category("娱乐"), 200.0, "2026-05-18", "演唱会", "音乐节"),
-        Record(Record._parse_category("餐饮"), 42.0, "2026-05-20", "食堂午餐", "工作日"),
-        Record(Record._parse_category("交通"), 50.0, "2026-05-22", "火车票", "回家"),
-        Record(Record._parse_category("购物"), 89.0, "2026-05-25", "护肤品", "日常护理"),
-        Record(Record._parse_category("餐饮"), 56.0, "2026-05-27", "外卖", "周末宅家"),
-        Record(Record._parse_category("通讯"), 50.0, "2026-05-28", "手机话费", "月租"),
-    ]
-
-    if not _storage.get_all_records():
-        for r in sample_records:
-            _storage.add_record(r)
-    print("[OK] Data loaded, sample records ready.")
 
 
 # ── 路由表 ───────────────────────────────────────────────
@@ -469,6 +697,10 @@ routes = [
     Route("/api/summary", get_summary, methods=["GET"]),
     Route("/api/py-version", get_py_version, methods=["GET"]),
     Route("/api/record-count", get_record_count, methods=["GET"]),
+    # 增强功能API
+    Route("/api/anomalies", get_anomalies, methods=["GET"]),      # 异常消费检测
+    Route("/api/weekday-analysis", get_weekday_analysis, methods=["GET"]),  # 周规律分析
+    Route("/api/trend-forecast", get_trend_forecast, methods=["GET"]),      # 趋势预测
 ]
 
 # 前端静态文件（如果存在）
@@ -490,9 +722,6 @@ middleware = [
 ]
 
 app = Starlette(routes=routes, middleware=middleware)
-
-# 启动时初始化数据
-init_storage()
 
 
 if __name__ == "__main__":

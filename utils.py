@@ -424,3 +424,110 @@ def calculate_budget_status(records: List[Record], budget: float) -> Dict:
         "status": status,
         "is_over": total > budget
     }
+
+
+def calculate_weekday_analysis(records: List[Record]) -> Dict:
+    """
+    计算周规律分析
+    
+    Args:
+        records: 消费记录列表
+        
+    Returns:
+        Dict: 周规律统计数据
+    """
+    from datetime import datetime
+    
+    weekday_names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+    weekday_totals = {i: 0.0 for i in range(7)}
+    weekday_counts = {i: 0 for i in range(7)}
+    
+    for record in records:
+        try:
+            d = datetime.strptime(record.date, "%Y-%m-%d")
+            wd = d.weekday()  # 0=Monday, 6=Sunday
+            weekday_totals[wd] += record.amount
+            weekday_counts[wd] += 1
+        except:
+            continue
+    
+    weekday_stats = {}
+    for i in range(7):
+        avg = weekday_totals[i] / weekday_counts[i] if weekday_counts[i] > 0 else 0
+        weekday_stats[weekday_names[i]] = {
+            "total": round(weekday_totals[i], 2),
+            "count": weekday_counts[i],
+            "average": round(avg, 2)
+        }
+    
+    return weekday_stats
+
+
+def calculate_trend_forecast(records: List[Record], days: int = 7) -> Dict:
+    """
+    计算趋势预测（简单移动平均）
+    
+    Args:
+        records: 消费记录列表
+        days: 移动平均窗口天数
+        
+    Returns:
+        Dict: 趋势预测数据
+    """
+    from datetime import datetime, timedelta
+    
+    if not records:
+        return {"forecast": [], "trend": "平稳", "moving_averages": []}
+    
+    # 按日期聚合
+    daily_totals = {}
+    for r in records:
+        daily_totals[r.date] = daily_totals.get(r.date, 0) + r.amount
+    
+    sorted_dates = sorted(daily_totals.keys())
+    if len(sorted_dates) < days:
+        return {
+            "forecast": [],
+            "trend": "数据不足",
+            "moving_averages": [],
+            "message": f"需要至少{days}天的数据"
+        }
+    
+    # 移动平均
+    moving_averages = []
+    for i in range(len(sorted_dates) - days + 1):
+        window_data = [daily_totals[sorted_dates[i + j]] for j in range(days)]
+        avg = sum(window_data) / days
+        moving_averages.append({
+            "date": sorted_dates[i + days - 1],
+            "average": round(avg, 2)
+        })
+    
+    # 简单线性回归
+    if len(moving_averages) >= 3:
+        n = len(moving_averages)
+        x_vals = list(range(n))
+        y_vals = [ma["average"] for ma in moving_averages]
+        
+        x_mean = sum(x_vals) / n
+        y_mean = sum(y_vals) / n
+        
+        numerator = sum((x_vals[i] - x_mean) * (y_vals[i] - y_mean) for i in range(n))
+        denominator = sum((x_vals[i] - x_mean) ** 2 for i in range(n))
+        
+        if denominator != 0:
+            slope = numerator / denominator
+            trend = "上升" if slope > 5 else "下降" if slope < -5 else "平稳"
+        else:
+            slope = 0
+            trend = "平稳"
+    else:
+        slope = 0
+        trend = "数据不足"
+    
+    return {
+        "forecast": [],
+        "trend": trend,
+        "trend_slope": round(slope, 4),
+        "moving_averages": moving_averages
+    }
