@@ -19,13 +19,16 @@ class DataStorage:
     负责消费记录的增删改查和文件持久化
     """
     
-    def __init__(self, data_dir: str = "data"):
+    def __init__(self, data_dir: str = None):
         """
         初始化数据存储
-        
+
         Args:
             data_dir: 数据存储目录
         """
+        if data_dir is None:
+            base = Path(__file__).parent
+            data_dir = str(base / "data")
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(exist_ok=True)
         self.data_file = self.data_dir / "records.json"

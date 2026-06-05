@@ -14,7 +14,7 @@
 
 from starlette.applications import Starlette
 from starlette.routing import Route, Mount, Router
-from starlette.responses import JSONResponse, RedirectResponse, Response
+from starlette.responses import FileResponse, JSONResponse, RedirectResponse, Response
 from starlette.middleware import Middleware
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
@@ -47,6 +47,10 @@ from utils import (
 
 
 # ── JSON 辅助 ─────────────────────────────────────────────
+
+BASE_DIR = Path(__file__).parent
+
+
 def json_response(data, status=200):
     return JSONResponse(data, status_code=status)
 
@@ -90,7 +94,8 @@ async def get_records(request: Request):
         records = [r for r in records
                    if kw in r.description.lower()
                    or kw in (r.note or "").lower()
-                   or kw in r.category.value.lower()]
+                   or kw in r.category.value.lower()
+                   or kw in getattr(r, "payment", "").lower()]
     if start_date:
         records = [r for r in records if r.date >= start_date]
     if end_date:
@@ -269,7 +274,11 @@ async def export_csv(request: Request):
         return error_response("暂无数据可导出", 400)
     try:
         path = export_to_csv(records)
-        return json_response({"success": True, "file": Path(path).name, "path": path})
+        return FileResponse(
+            path,
+            media_type="text/csv; charset=utf-8",
+            filename=Path(path).name,
+        )
     except Exception as e:
         return error_response(str(e), 500)
 
@@ -454,7 +463,7 @@ async def get_weekday_analysis(request: Request):
             "anomalies": []
         })
 
-    weekday_names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+    weekday_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
     weekday_totals = {i: 0.0 for i in range(7)}
     weekday_counts = {i: 0 for i in range(7)}
     weekday_records = {i: [] for i in range(7)}
@@ -490,13 +499,13 @@ async def get_weekday_analysis(request: Request):
     overall_avg = sum(weekday_totals.values()) / max(sum(weekday_counts.values()), 1)
     for wd, records_list in weekday_records.items():
         for r in records_list:
-            if r.amount > overall_avg * 2.5:
+            if r["amount"] > overall_avg * 2.5:
                 anomalies.append({
-                    "date": r.date,
-                    "amount": r.amount,
-                    "category": r.category.value,
-                    "description": r.description,
-                    "deviation": round(r.amount - overall_avg, 2)
+                    "date": r["date"],
+                    "amount": r["amount"],
+                    "category": r["category"],
+                    "description": r["description"],
+                    "deviation": round(r["amount"] - overall_avg, 2)
                 })
 
     return json_response({
@@ -725,10 +734,11 @@ app = Starlette(routes=routes, middleware=middleware)
 
 
 if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         "main:app",
-        host="127.0.0.1",
-        port=8000,
-        reload=True,
+        host="0.0.0.0",
+        port=port,
+        reload=False,
         log_level="info",
     )

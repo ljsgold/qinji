@@ -1,7 +1,8 @@
 # 个人消费管理系统依赖
 # 杭州电子科技大学《Python程序设计》期末大作业
-# Web API 版依赖（Starlette + uvicorn）
 starlette>=0.27.0
 uvicorn[standard]>=0.23.0
 pandas>=2.0.0
 plotly>=5.18.0
+python-multipart>=0.0.6
+aiofiles>=23.0
