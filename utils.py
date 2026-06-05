@@ -438,7 +438,7 @@ def calculate_weekday_analysis(records: List[Record]) -> Dict:
     """
     from datetime import datetime
     
-    weekday_names = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"]
+    weekday_names = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
     weekday_totals = {i: 0.0 for i in range(7)}
     weekday_counts = {i: 0 for i in range(7)}
     

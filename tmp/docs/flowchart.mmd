@@ -1,0 +1,109 @@
+%%{init: {
+  'theme': 'base',
+  'themeVariables': {
+    'primaryColor': '#667eea',
+    'primaryTextColor': '#fff',
+    'primaryBorderColor': '#5a6fd6',
+    'lineColor': '#90a4ae',
+    'secondaryColor': '#f5f5f5',
+    'tertiaryColor': '#e8eaf6',
+    'fontFamily': 'Microsoft YaHei, sans-serif',
+    'fontSize': '13px'
+  },
+  'flowchart': {
+    'nodeSpacing': 12,
+    'rankSpacing': 55,
+    'useMaxWidth': true,
+    'htmlLabels': true
+  }
+}}%%
+flowchart LR
+    START(("🟢 用户访问<br/>127.0.0.1:8000")):::startNode --> NAV{"📌 页面导航<br/>frontend/index.html<br/>2861行 · 5页面SPA"}:::decision
+
+    NAV -->|"📊 总览"| DASH("📊 总览仪表盘<br/>GET /api/summary<br/>预算追踪 · 统计卡片<br/>异常消费自动告警"):::feNode
+    NAV -->|"✏️ 记一笔"| ADD("✏️ 添加消费<br/>分类 · 金额 · 日期<br/>描述 · 支付方式 · 备注"):::feNode
+    NAV -->|"📋 账本"| LIST("📋 记录管理<br/>GET /api/records<br/>筛选 · 搜索 · 排序<br/>分页 · CSV导出"):::feNode
+    NAV -->|"📈 分析"| ANALYZE("📈 数据分析<br/>趋势折线图 · 分类饼图<br/>周规律柱状图 · 统计指标"):::feNode
+    NAV -->|"💾 归档"| ARCHIVE("💾 数据管理<br/>备份 · 恢复 · CSV导入<br/>备份预览 · 数据清空"):::feNode
+
+    DASH --> BUDGET_API{"calculate_budget<br/>_status() 预算预警"}:::decision
+    BUDGET_API -->|"使用率 ≥ 100%"| OVER("🔴 超支<br/>预算已用完"):::failNode
+    BUDGET_API -->|"使用率 ≥ 80%"| WARN_STATE("🟡 警告<br/>预算即将用完"):::warnNode
+    BUDGET_API -->|"使用率 < 80%"| SAFE("🟢 安全<br/>预算充足"):::successNode
+
+    ADD --> VALIDATE{"validate_record()<br/>五道数据校验"}:::decision
+    VALIDATE -->|"❌ 金额≤0 或 >100万"| VFAIL1("金额不合法"):::failNode
+    VALIDATE -->|"❌ 日期非YYYY-MM-DD"| VFAIL2("日期格式错误"):::failNode
+    VALIDATE -->|"❌ 描述为空或超100字"| VFAIL3("描述不合法"):::failNode
+    VALIDATE -->|"✅ 校验通过"| CREATE_API["POST /api/records<br/>Record数据类实例化<br/>生成UUID · 时间戳"]:::apiNode
+    CREATE_API --> ADD_OK("✅ 添加成功<br/>返回完整记录JSON"):::successNode
+
+    LIST --> RECORDS_API["GET /api/records<br/>10种筛选参数<br/>category/keyword/date<br/>min/max_amount/payment<br/>sort/limit/offset"]:::apiNode
+    RECORDS_API --> EXPORT["GET /api/export<br/>export_to_csv()<br/>UTF-8 BOM · Excel兼容"]:::subNode
+    RECORDS_API --> DEL_API{"DELETE<br/>/api/records/{id}"}:::decision
+    DEL_API -->|"记录存在"| DEL_DO["DataStorage<br/>delete_record()"]:::subNode
+    DEL_DO --> DEL_OK("✅ 删除成功"):::successNode
+    DEL_API -->|"记录不存在"| DEL_FAIL("❌ 404 不存在"):::failNode
+
+    ANALYZE --> STATS_API["GET /api/statistics<br/>calculate_statistics()<br/>总额·均值·极值<br/>分类汇总·日均消费"]:::apiNode
+
+    ANALYZE --> ANOMALY_API["GET /api/anomalies<br/>detect_anomalies()<br/>Z-score异常检测<br/>统计学离群值分析"]:::apiNode
+    ANOMALY_API --> ZSCORE{"Z-score 算法<br/>z = (x - μ) / σ"}:::decision
+    ZSCORE --> MEAN_CALC["计算均值 μ<br/>计算标准差 σ"]:::subNode
+    MEAN_CALC --> ZCHECK{"|z_score| > 2.0 ?<br/>2倍标准差阈值"}:::decision
+    ZCHECK -->|"是 · 异常"| ABNORMAL("🚨 标记异常消费<br/>按|z|降序排列<br/>附带偏离金额Δ"):::warnNode
+    ZCHECK -->|"否 · 正常"| NORMAL_DATA("✅ 正常范围"):::successNode
+
+    ANALYZE --> WEEKDAY_API["GET /api/weekday-analysis<br/>calculate_weekday_analysis()<br/>按星期7天聚合分析"]:::apiNode
+    WEEKDAY_API --> WDAY_GROUP["group by weekday<br/>总额·笔数·均值<br/>识别消费最高/最低日"]:::subNode
+    WDAY_GROUP --> WDAY_ANOMALY{"单日消费<br/>> 日均×2.5 ?"}:::decision
+    WDAY_ANOMALY -->|"是"| WDAY_WARN("异常大额日"):::warnNode
+    WDAY_ANOMALY -->|"否"| WDAY_CHART("📊 7天柱状图<br/>Plotly.js 渲染"):::feNode
+
+    ANALYZE --> TREND_API["GET /api/trend-forecast<br/>calculate_trend_forecast()<br/>移动平均+线性回归"]:::apiNode
+    TREND_API --> MA_STEP["Step1: 按日聚合<br/>daily_totals{}<br/>sorted_dates[]"]:::subNode
+    MA_STEP --> MA_WINDOW["Step2: 7日移动平均<br/>Σ(7日金额)/7<br/>消除单日波动"]:::subNode
+    MA_WINDOW --> REGRESS{"Step3: 线性回归<br/>y = a·x + b<br/>最小二乘法"}:::decision
+    REGRESS --> SLOPE_CALC["斜率 a = Σ(xi-x̄)(yi-ȳ)<br/>     / Σ(xi-x̄)²<br/>截距 b = ȳ - a·x̄"]:::subNode
+    SLOPE_CALC --> TREND_DECIDE{"趋势判定<br/>斜率方向"}:::decision
+    TREND_DECIDE -->|"a > 5"| TREND_UP("📈 上升趋势<br/>预测未来3天消费"):::warnNode
+    TREND_DECIDE -->|"a < -5"| TREND_DOWN("📉 下降趋势<br/>预测未来3天消费"):::successNode
+    TREND_DECIDE -->|"|a| ≤ 5"| TREND_FLAT("➡️ 平稳趋势"):::subNode
+
+    ARCHIVE --> BACKUP_API["POST /api/backup<br/>create_backup()<br/>backup_时间戳.json"]:::apiNode
+    ARCHIVE --> RESTORE_API["POST /api/backup/restore<br/>restore_backup()<br/>覆盖主存储+重新加载"]:::apiNode
+    ARCHIVE --> IMPORT_API["POST /api/import<br/>import_from_csv()<br/>multipart文件上传<br/>自动跳过异常行"]:::apiNode
+    ARCHIVE --> CLEAR_API["POST /api/records/clear<br/>clear_all()<br/>清空记录(备份保留)"]:::apiNode
+
+    STORE_MIDDLE["DataStorage 数据存储层"]:::subNode
+
+    CREATE_API --> STORE_MIDDLE
+    RECORDS_API --> STORE_MIDDLE
+    DEL_DO --> STORE_MIDDLE
+    STATS_API --> STORE_MIDDLE
+    ANOMALY_API --> STORE_MIDDLE
+    WEEKDAY_API --> STORE_MIDDLE
+    TREND_API --> STORE_MIDDLE
+    BACKUP_API --> STORE_MIDDLE
+    RESTORE_API --> STORE_MIDDLE
+    IMPORT_API --> STORE_MIDDLE
+    CLEAR_API --> STORE_MIDDLE
+
+    STORE_MIDDLE --> SAVE_DATA["_save_data()<br/>json.dump(data,f,<br/>ensure_ascii=False,<br/>indent=2)"]:::dataNode
+    STORE_MIDDLE --> LOAD_DATA["_load_data()<br/>json.load()<br/>容错处理"]:::dataNode
+
+    SAVE_DATA --> JSON_FILE(("📁 data/records.json<br/>records[] · budget<br/>settings · last_updated")):::dataFile
+    LOAD_DATA --> JSON_FILE
+
+    SAVE_DATA --> BACKUP_DIR["data/backups/<br/>自动备份目录"]:::dataNode
+
+    classDef startNode fill:#43a047,stroke:#2e7d32,color:#fff,stroke-width:2px,font-weight:bold,font-size:14px
+    classDef feNode fill:#1976d2,stroke:#1565c0,color:#fff,stroke-width:2px,font-weight:bold
+    classDef apiNode fill:#7e57c2,stroke:#5e35b1,color:#fff,stroke-width:2px,font-weight:bold
+    classDef subNode fill:#eceff1,stroke:#90a4ae,color:#37474f,stroke-width:1px
+    classDef decision fill:#fff3e0,stroke:#ff9800,color:#e65100,stroke-width:2px,font-weight:bold
+    classDef successNode fill:#66bb6a,stroke:#43a047,color:#fff,stroke-width:2px,font-weight:bold
+    classDef failNode fill:#ef5350,stroke:#d32f2f,color:#fff,stroke-width:2px,font-weight:bold
+    classDef warnNode fill:#ffa726,stroke:#f57c00,color:#fff,stroke-width:2px,font-weight:bold
+    classDef dataNode fill:#00838f,stroke:#006064,color:#fff,stroke-width:2px,font-weight:bold
+    classDef dataFile fill:#00695c,stroke:#004d40,color:#fff,stroke-width:2px,font-weight:bold,font-size:13px

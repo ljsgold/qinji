@@ -1,0 +1,239 @@
+[P1] style=Normal | font=华文行楷 | size=304800 | bold=True
+  TEXT: 杭州电子科技大学信息工程学院
+
+[P2] style=Normal | font=宋体 | size=304800 | bold=True
+  TEXT: 《Python程序设计》期末大作业
+
+[P7] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 评分要求与完成情况
+
+[P9] style=Normal | font=None | size=203200 | bold=True
+  TEXT: 《Python程序设计》大作业报告
+
+[P10] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 作业题目
+
+[P11] style=Normal | font=None | size=None | bold=None
+  TEXT: 个人消费管理系统。系统用于记录和分析个人日常支出，帮助用户了解消费结构、消费趋势和预算执行情况。
+
+[P12] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 项目概述
+
+[P13] style=Normal | font=None | size=None | bold=None
+  TEXT: 本系统围绕“记账、统计、分析、提醒”四个核心目标设计。用户可以录入消费分类、金额、日期、描述、备注和支付方式；系统将数据保存到本地 JSON 文件，并支持 CSV 导入导出、备份恢复、分类筛选、日期筛选和多维度统计。前端页面采用仪表盘式布局，展示本月消费、最近记录、分类分布、趋势图和预算执行状态。
+
+[P14] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 开发环境与技术栈
+
+[P15] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 项目结构
+
+[P16] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: 大作业1/
+
+[P17] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   app.py                 Streamlit 可视化应用
+
+[P18] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   main.py                Starlette 后端服务
+
+[P19] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   models.py              Record、Budget、UserSettings 数据模型
+
+[P20] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   data_storage.py        JSON 持久化、备份与恢复
+
+[P21] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   utils.py               统计、校验、导入导出、异常检测工具函数
+
+[P22] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   frontend/index.html    Gemini 3 辅助设计的前端页面
+
+[P23] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   data/records.json      当前消费记录数据
+
+[P24] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   data/sample_data.json  示例数据
+
+[P25] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   requirements.txt       项目依赖
+
+[P26] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:   启动系统.bat            Windows 启动脚本
+
+[P27] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 程序设计思路（流程图）
+
+[P28] style=Normal | font=None | size=None | bold=None
+  TEXT: 系统采用“数据模型 - 数据存储 - 业务函数 - 后端接口 - 前端页面”的分层结构，避免把所有逻辑写在一个文件中。
+
+[P30] style=Normal | font=None | size=120650 | bold=None
+  TEXT: 图 1  个人消费管理系统程序流程图
+
+[P31] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 评分项实现说明
+
+[P32] style=Normal | font=None | size=None | bold=None
+  TEXT: 菜单交互：frontend/index.html 使用左侧导航和多页面区域组织首页、记录、统计、可视化、预算和设置；app.py 也提供 Streamlit 侧边栏菜单。
+
+[P33] style=Normal | font=None | size=None | bold=None
+  TEXT: 数据存储：data_storage.py 中 DataStorage 负责读取和保存 data/records.json，保存 records、budget、settings 和更新时间；utils.py 支持 CSV 导入导出。
+
+[P34] style=Normal | font=None | size=None | bold=None
+  TEXT: 函数封装：models.py 封装数据对象，utils.py 封装校验和统计函数，main.py 封装 API 路由，frontend/index.html 负责页面交互。
+
+[P35] style=Normal | font=None | size=None | bold=None
+  TEXT: 异常处理：validate_record() 检查金额、日期、描述和备注；DataStorage 捕获 JSON 解析、文件保存、备份恢复等异常；接口返回清晰错误信息。
+
+[P36] style=Normal | font=None | size=None | bold=None
+  TEXT: 数据统计：calculate_statistics()、get_category_statistics()、calculate_daily_average() 完成总额、笔数、均值、最大/最小值、分类汇总和日均消费。
+
+[P37] style=Normal | font=None | size=None | bold=None
+  TEXT: 提高与创新：实现 Chart.js/Plotly 可视化、面向对象模型、预算使用率提醒、基于均值和标准差的异常消费检测、前后端分离式页面。
+
+[P38] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 核心代码说明
+
+[P39] style=Normal | font=None | size=152400 | bold=True
+  TEXT: 消费记录数据模型
+
+[P40] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: @dataclass
+
+[P41] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: class Record:
+
+[P42] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     category: Category
+
+[P43] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     amount: float
+
+[P44] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     date: str
+
+[P45] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     description: str
+
+[P46] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     note: Optional[str] = None
+
+[P47] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     payment: str = '现金'
+
+[P48] style=Normal | font=None | size=None | bold=None
+  TEXT: Record 使用 dataclass 表示一条消费记录，包含分类、金额、日期、描述、备注、支付方式、唯一 id 和创建时间。to_dict()/from_dict() 负责对象与 JSON 字典之间的转换。
+
+[P49] style=Normal | font=None | size=152400 | bold=True
+  TEXT: 数据保存逻辑
+
+[P50] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: data = {
+
+[P51] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     'records': [r.to_dict() for r in self.records],
+
+[P52] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     'budget': self.budget.to_dict(),
+
+[P53] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     'settings': self.settings.to_dict(),
+
+[P54] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+[P55] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: }
+
+[P56] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: json.dump(data, f, ensure_ascii=False, indent=2)
+
+[P57] style=Normal | font=None | size=None | bold=None
+  TEXT: 该逻辑将消费记录、预算和设置统一写入 JSON 文件，ensure_ascii=False 保证中文分类和备注正常保存。
+
+[P58] style=Normal | font=None | size=152400 | bold=True
+  TEXT: 异常消费检测
+
+[P59] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: mean = sum(amounts) / len(amounts)
+
+[P60] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: variance = sum((x - mean) ** 2 for x in amounts) / len(amounts)
+
+[P61] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: std = variance ** 0.5
+
+[P62] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: z_score = (record.amount - mean) / std if std > 0 else 0
+
+[P63] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT: if abs(z_score) > threshold:
+
+[P64] style=Normal | font=Consolas | size=107950 | bold=None
+  TEXT:     anomalies.append({'record': record, 'z_score': z_score})
+
+[P65] style=Normal | font=None | size=None | bold=None
+  TEXT: 系统通过平均值和标准差计算 Z 分数，识别明显偏离日常水平的大额消费，帮助用户发现异常支出。
+
+[P66] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 功能与结果展示
+
+[P67] style=Normal | font=None | size=None | bold=None
+  TEXT: 当前 records.json 中共有 18 条示例记录，总消费 1970.50 元；分类消费中购物 946.00 元、餐饮 454.50 元、娱乐 280.00 元、医疗 150.00 元、交通 90.00 元、通讯 50.00 元。
+
+[P68] style=Normal | font=None | size=177800 | bold=True
+  TEXT: AI 辅助编程说明
+
+[P69] style=Normal | font=None | size=None | bold=None
+  TEXT: AI 只用于辅助前端页面设计和交互优化，后端数据模型、文件存储、统计逻辑、异常处理、接口适配、调试和报告整理均由本人完成并理解。
+
+[P70] style=Normal | font=None | size=177800 | bold=True
+  TEXT: 心得体会
+
+[P71] style=Normal | font=None | size=None | bold=None
+  TEXT: 通过本次大作业，我把 Python 的类、函数、文件读写、异常处理、数据统计和 Web 应用开发结合到一个完整项目中。开发过程中我体会到模块化设计的重要性：数据模型、存储层、工具函数、后端接口和前端页面分开后，问题更容易定位，功能也更容易扩展。后续如果继续完善，可以加入用户登录、多账本管理、数据库存储和消费预测功能。
+
+=== TABLE 0 ===
+  Row0: [0]题    目 | [1]个人消费管理系统
+  Row1: [0]学    院 | [1]计算机学院
+  Row2: [0]专    业 | [1]计算机类
+  Row3: [0]学    期 | [1]2025-2026-2
+  Row4: [0]学    号 | [1]249050123
+  Row5: [0]姓    名 | [1]刘俊昇
+  Row6: [0]任课教师 | [1]张蒙
+  Row7: [0]完成日期 | [1]2026年6  月 3 日
+
+=== TABLE 1 ===
+  Row0: [0]评分项 | [1]要求 | [2]本项目完成情况 | [3]对应文件/函数
+  Row1: [0]菜单交互 | [1]具备清晰菜单或页面交互。 | [2]完成侧边栏导航、记录页、统计页、可视化页、预算页、设置页。 | [3]frontend/index.html, app.py
+  Row2: [0]数据存储 | [1]使用文件读写保存数据。 | [2]使用 JSON 保存 records、budget、settings，并提供 CSV 导入导出和备份恢复。 | [3]data_storage.py, utils.py
+  Row3: [0]函数封装 | [1]功能模块清晰。 | [2]数据模型、存储、统计、后端接口、前端页面分层组织。 | [3]models.py, data_storage.py, utils.py, main.py
+  Row4: [0]异常处理 | [1]能处理输入和文件异常。 | [2]校验金额、日期、描述、备注长度，处理 JSON 解析和文件保存异常。 | [3]validate_record(), DataStorage
+  Row5: [0]数据统计 | [1]能完成汇总与分析。 | [2]计算总额、笔数、平均值、最高/最低单笔、分类汇总、日均消费。 | [3]calculate_statistics()
+  Row6: [0]代码规范 | [1]命名清楚，有注释。 | [2]使用 dataclass、Enum、类型注解和函数说明，语法检查通过。 | [3]全项目 Python 文件
+  Row7: [0]提高/创新 | [1]可视化、GUI、OOP 等扩展。 | [2]前端仪表盘、Chart.js 图表、Streamlit/Plotly 可视化版、预算提醒、异常消费检测。 | [3]frontend/index.html, app.py, utils.py
+  Row8: [0]AI 使用说明 | [1]说明使用记录和修改内容。 | [2]Gemini 3 用于前端页面布局与交互优化，本人完成接口适配、调试和报告整理。 | [3]报告 AI 辅助说明
+
+=== TABLE 2 ===
+  Row0: [0]层次 | [1]技术 | [2]说明
+  Row1: [0]开发语言 | [1]Python 3.x | [2]完成数据模型、文件存储、统计计算和后端接口。
+  Row2: [0]后端服务 | [1]Starlette + uvicorn | [2]main.py 提供记录管理、统计、导入导出和备份接口。
+  Row3: [0]前端页面 | [1]HTML/CSS/JavaScript + Chart.js | [2]frontend/index.html 实现仪表盘、表格、图表、弹窗和交互。
+  Row4: [0]可视化版本 | [1]Streamlit + pandas + Plotly | [2]app.py 提供课程演示版可视化界面。
+  Row5: [0]数据存储 | [1]JSON + CSV | [2]records.json 持久化，CSV 用于导入导出。
+  Row6: [0]AI 辅助 | [1]Gemini 3 | [2]用于前端页面布局、视觉风格和交互逻辑优化。
+
+=== TABLE 3 ===
+  Row0: [0]功能模块 | [1]实现结果 | [2]说明
+  Row1: [0]首页概览 | [1]展示本月、本周、今日、日均消费和最近记录。 | [2]通过 /api/summary 或 Streamlit 统计卡片展示。
+  Row2: [0]消费记录 | [1]支持添加、查看、排序、筛选、删除和 CSV 导出。 | [2]记录字段包括分类、金额、日期、描述、备注和支付方式。
+  Row3: [0]统计分析 | [1]按月份和分类统计消费总额、笔数和均值。 | [2]示例数据共 18 条，时间范围 2026-05-01 至 2026-05-28。
+  Row4: [0]数据可视化 | [1]展示趋势图、分类图、星期图和预算对比图。 | [2]前端使用 Chart.js，Streamlit 版本使用 Plotly。
+  Row5: [0]预算管理 | [1]默认预算 3000 元，可计算剩余预算和使用率。 | [2]超过阈值时给出提醒。
+  Row6: [0]数据管理 | [1]支持备份、恢复、重新加载和清空记录。 | [2]减少误操作造成的数据丢失风险。
+
+=== TABLE 4 ===
+  Row0: [0]次数 | [1]工具 | [2]用途 | [3]本人修改与理解
+  Row1: [0]1 | [1]Gemini 3 | [2]辅助设计 frontend/index.html 前端页面，包括侧边栏、仪表盘卡片、表格区域、弹窗、深色模式和整体视觉风格。 | [3]根据项目已有后端接口调整页面字段、按钮行为和中文文案，确保页面服务于个人消费管理系统。
+  Row2: [0]2 | [1]Gemini 3 | [2]辅助优化前端交互逻辑，包括 Fetch API 调用、Chart.js 图表配置、数据导入导出、备份列表和预算提醒交互。 | [3]本人对接口路径、数据结构、异常提示和图表数据转换进行检查与修改，核心业务逻辑能够解释。
+
